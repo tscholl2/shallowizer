@@ -37,6 +37,8 @@ func main() {
 		info.StartBytes, _ = dirSizeInBytes(path)
 		if err := shallowize(path); err != nil {
 			info.Error = err.Error()
+			fmt.Fprintln(os.Stderr, "error with repo: ", path)
+			fmt.Fprintln(os.Stderr, err)
 		}
 		info.EndBytes, _ = dirSizeInBytes(path)
 		results[path] = info
@@ -52,19 +54,10 @@ func shallowize(repo string) error {
 		return c
 	}
 	// skip dirty repos
-	if out, err := cwd(exec.Command("git", "diff", "--shortstat")).Output(); err != nil || string(out) != "" {
+	if out, err := cwd(exec.Command("git", "diff", "--shortstat")).CombinedOutput(); err != nil || string(out) != "" {
 		return fmt.Errorf("might be dirty:\n\tout: %s\n\terr: %s", out, err)
 	}
-	if err := os.RemoveAll(repo); err != nil {
-		return fmt.Errorf("unable to delete repo:\n%s", err)
-	}
-	url, err := cwd(exec.Command("git", "remote", "get-url", "origin")).Output()
-	if err != nil {
-		return fmt.Errorf("unable to read url:\n\tout: %s\n\terr: %s", url, err)
-	}
-	if out, err := cwd(exec.Command("git", "clone", "--depth=1", string(url), repo)).Output(); err != nil {
-		return fmt.Errorf("unable to re-clone:\n\tout: %s\n\terr: %s", out, err)
-	}
+	// TODO: figure out how to shallowize
 	return nil
 }
 
