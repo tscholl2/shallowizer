@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -57,7 +58,22 @@ func shallowize(repo string) error {
 	if out, err := cwd(exec.Command("git", "diff", "--shortstat")).CombinedOutput(); err != nil || string(out) != "" {
 		return fmt.Errorf("might be dirty:\n\tout: %s\n\terr: %s", out, err)
 	}
-	// TODO: figure out how to shallowize
+	// find remote origin
+	out, err := cwd(exec.Command("git", "remote", "get-url", "origin")).CombinedOutput()
+	url := string(out)
+	if err != nil || url == "" {
+		return fmt.Errorf("unable to read url:\n\tout: %s\n\terr: %s", out, err)
+	}
+	dir, err := ioutil.TempDir("", "shallow-clone")
+	if err != nil {
+		return fmt.Errorf("unable to create temp dir:\n\t%s", err)
+	}
+	defer os.RemoveAll(dir)
+	// do a shallow clone
+	if out, err := cwd(exec.Command("git", "clone", "--depth=1", url, dir)).CombinedOutput(); err != nil {
+		return fmt.Errorf("unable to re-clone:\n\tout: %s\n\terr: %s", out, err)
+	}
+	// TODO: copy temp files to repo path
 	return nil
 }
 

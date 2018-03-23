@@ -7,8 +7,8 @@ It works as follows:
 
 1. Walk through all directories and sub-directories in `$GOPATH/src`.
 2. If a directory contains a `.git` sub-folder, mark it as a repo.
-3. Run `git pull --depth=1 && git gc --prune=all` in each repo.
-4. Measure the size of the repo before and after pruning and print the results.
+3. Run `git clone --depth=1 "url-of-remote" temporary/directory/` in each repo.
+4. Replace the repo with the shallow cloned one.
 
 ## why
 
