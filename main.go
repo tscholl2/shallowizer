@@ -31,19 +31,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, path := range arr {
-		info := repoInfo{path, 0, 0, ""}
-		info.StartBytes, err = dirSizeInBytes(path)
-		if err != nil {
-			log.Fatal(err)
-		}
+	for _, path := range arr[:1] {
+		var info repoInfo
+		info.Path = path
+		info.StartBytes, _ = dirSizeInBytes(path)
 		if err := shallowize(path); err != nil {
 			info.Error = err.Error()
 		}
-		info.EndBytes, err = dirSizeInBytes(path)
-		if err != nil {
-			log.Fatal(err)
-		}
+		info.EndBytes, _ = dirSizeInBytes(path)
 		results[path] = info
 	}
 	enc := json.NewEncoder(os.Stdout)
@@ -56,10 +51,14 @@ func shallowize(repo string) error {
 		c.Dir = repo
 		return c
 	}
+	if out, err := cwd(exec.Command("git", "diff", "--shortstat", "2> /dev/null", " | tail -n1")).Output(); err != nil || string(out) != "" {
+		return fmt.Errorf("err or dirty:\n\tout: %s\n\terr: %s", out, err)
+	}
+
 	if out, err := cwd(exec.Command("git", "pull", "--depth=1")).Output(); err != nil {
 		return fmt.Errorf("unable to pull:\n\tout: %s\n\terr: %s", out, err)
 	}
-	// TODO: fix this
+	// TODO: fix
 	// if out, err := cwd(exec.Command("git", "gc", "--prune=all")).Output(); err != nil {
 	// 	return fmt.Errorf("unable to prune:\n\tout: %s\n\terr: %s", out, err)
 	// }
