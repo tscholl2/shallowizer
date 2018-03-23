@@ -51,17 +51,20 @@ func shallowize(repo string) error {
 		c.Dir = repo
 		return c
 	}
-	if out, err := cwd(exec.Command("git", "diff", "--shortstat", "2> /dev/null", " | tail -n1")).Output(); err != nil || string(out) != "" {
-		return fmt.Errorf("err or dirty:\n\tout: %s\n\terr: %s", out, err)
+	// skip dirty repos
+	if out, err := cwd(exec.Command("git", "diff", "--shortstat")).Output(); err != nil || string(out) != "" {
+		return fmt.Errorf("might be dirty:\n\tout: %s\n\terr: %s", out, err)
 	}
-
-	if out, err := cwd(exec.Command("git", "pull", "--depth=1")).Output(); err != nil {
-		return fmt.Errorf("unable to pull:\n\tout: %s\n\terr: %s", out, err)
+	if err := os.RemoveAll(repo); err != nil {
+		return fmt.Errorf("unable to delete repo:\n%s", err)
 	}
-	// TODO: fix
-	// if out, err := cwd(exec.Command("git", "gc", "--prune=all")).Output(); err != nil {
-	// 	return fmt.Errorf("unable to prune:\n\tout: %s\n\terr: %s", out, err)
-	// }
+	url, err := cwd(exec.Command("git", "remote", "get-url", "origin")).Output()
+	if err != nil {
+		return fmt.Errorf("unable to read url:\n\tout: %s\n\terr: %s", url, err)
+	}
+	if out, err := cwd(exec.Command("git", "clone", "--depth=1", string(url), repo)).Output(); err != nil {
+		return fmt.Errorf("unable to re-clone:\n\tout: %s\n\terr: %s", out, err)
+	}
 	return nil
 }
 
