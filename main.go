@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -13,6 +14,7 @@ type repoInfo struct {
 	Path       string
 	StartBytes int64
 	EndBytes   int64
+	Error      string
 }
 
 func main() {
@@ -30,13 +32,13 @@ func main() {
 		log.Fatal(err)
 	}
 	for _, path := range arr {
-		info := repoInfo{path, 0, 0}
+		info := repoInfo{path, 0, 0, ""}
 		info.StartBytes, err = dirSizeInBytes(path)
 		if err != nil {
 			log.Fatal(err)
 		}
 		if err := shallowize(path); err != nil {
-			log.Fatal(err)
+			info.Error = err.Error()
 		}
 		info.EndBytes, err = dirSizeInBytes(path)
 		if err != nil {
@@ -54,11 +56,14 @@ func shallowize(repo string) error {
 		c.Dir = repo
 		return c
 	}
-	if _, err := cwd(exec.Command("git", "pull", "--depth=1")).Output(); err != nil {
-		return err
+	if out, err := cwd(exec.Command("git", "pull", "--depth=1")).Output(); err != nil {
+		return fmt.Errorf("unable to pull:\n\tout: %s\n\terr: %s", out, err)
 	}
-	_, err := cwd(exec.Command("git", "gc", "--prune=all")).Output()
-	return err
+	// TODO: fix this
+	// if out, err := cwd(exec.Command("git", "gc", "--prune=all")).Output(); err != nil {
+	// 	return fmt.Errorf("unable to prune:\n\tout: %s\n\terr: %s", out, err)
+	// }
+	return nil
 }
 
 func listRepos(root string) (repos []string, err error) {
